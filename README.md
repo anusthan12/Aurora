@@ -1,5 +1,5 @@
 # Aurora
-Aurora is an open AI application (inspired by ChatGPT) made using technologies such as React Js, Vanilla CSS, Node Js , Express, Axios, and Live running on a server 24x7 with the frontend.
+Aurora is an open AI application (inspired by ChatGPT) made using technologies such as JavaScript, react concepts , Vanilla CSS, Node Js , Express, Axios, and Live running on a server 24x7 with the frontend.
 
 
 ## Badges
