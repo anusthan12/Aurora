@@ -1,4 +1,5 @@
 # Aurora
+# Aurora service is being stopped because currently working on Aurora V2.0 will be released by this week
 Aurora is an open AI application (inspired by ChatGPT) made using technologies such as JavaScript, react concepts , Vanilla CSS, Node Js , Express, Axios, and Live running on a server 24x7 with the frontend.
 
 
