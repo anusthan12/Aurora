@@ -155,17 +155,7 @@ Potential next-generation upgrades:
 - 🔐 Authentication + chat history  
 - 📊 Analytics & personalization  
 
----
 
-## 📁 Project Structure
-Aurora/
-├── client/ # React frontend
-├── server/ # Node.js backend
-├── .gitignore
-├── README.md
-
-
----
 
 ## 🎯 Design Philosophy
 
