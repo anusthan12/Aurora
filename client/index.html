@@ -4,22 +4,34 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Aurora -  Your AI Chat</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Aurora — Your AI Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=Nunito:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    
+
+    <!-- Aurora animated background orbs -->
+    <div class="aurora-bg" aria-hidden="true">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+
     <div id="app">
       <div id="chat_container">
         <h4 id="heading">Aurora</h4>
       </div>
-      
-      <form>
-        <textarea name="prompt" id="" cols="3" rows="1" placeholder="Ask to Aurora ..."></textarea>
-        
-      <button type="submit"><img src="assets/send.svg" alt=""/></button>
-      </form>
 
+      <form>
+        <textarea name="prompt" cols="3" rows="1" placeholder="Ask Aurora…"></textarea>
+        <button type="submit">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </form>
     </div>
 
     <script type="module" src="/script.js"></script>
