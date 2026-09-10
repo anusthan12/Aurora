@@ -12,18 +12,14 @@ const chatHistory = [
   { role: "system", content: "You are Aurora, a helpful and concise AI assistant." }
 ];
 
-// Helper: Loading dots indicator
 function loader(element) {
   element.textContent = '';
   loadInterval = setInterval(() => {
     element.textContent += '.';
-    if (element.textContent === '....') {
-      element.textContent = '';
-    }
+    if (element.textContent === '....') element.textContent = '';
   }, 300);
 }
 
-// Helper: Smooth typing effect
 function typeText(element, text) {
   let index = 0;
   element.innerHTML = '';
@@ -38,14 +34,10 @@ function typeText(element, text) {
   }, 15);
 }
 
-// Helper: Generate unique ID for bot message elements
 function generateUniqueId() {
-  const timestamp = Date.now();
-  const randomNumber = Math.random().toString(16).slice(2);
-  return `msg-${timestamp}-${randomNumber}`;
+  return `msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-// Helper: Build message bubbles
 function chatStripe(isAi, value, uniqueId = '') {
   return `
     <div class="wrapper ${isAi ? 'ai' : ''}">
@@ -59,7 +51,6 @@ function chatStripe(isAi, value, uniqueId = '') {
   `;
 }
 
-// Form Submission Handler
 const handleSubmit = async (e) => {
   if (e) e.preventDefault();
 
@@ -68,11 +59,9 @@ const handleSubmit = async (e) => {
 
   if (!userPrompt) return;
 
-  // Render user prompt
   chatContainer.innerHTML += chatStripe(false, userPrompt);
   form.reset();
 
-  // Render bot placeholder stripe
   const uniqueId = generateUniqueId();
   chatContainer.innerHTML += chatStripe(true, ' ', uniqueId);
   chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -83,30 +72,32 @@ const handleSubmit = async (e) => {
   try {
     chatHistory.push({ role: 'user', content: userPrompt });
 
-    // Requesting API inference
-    const response = await fetch('/api/chat', {
+    // Directly calling the free, no-key open API
+    const response = await fetch('https://text.pollinations.ai/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: chatHistory })
+      body: JSON.stringify({
+        messages: chatHistory,
+        model: 'openai' // Routes to a generic open-weights model
+      })
     });
     
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'API Error');
+    if (!response.ok) throw new Error('Network response was not ok');
 
-    clearInterval(loadInterval);
-    const botReply = data.reply;
+    // Pollinations returns plain text, not JSON
+    const botReply = await response.text(); 
     
+    clearInterval(loadInterval);
     chatHistory.push({ role: 'assistant', content: botReply });
     typeText(messageDiv, botReply);
 
   } catch (error) {
     clearInterval(loadInterval);
-    messageDiv.innerText = `Error: ${error.message || 'Generation failed'}`;
+    messageDiv.innerText = `Error: Cannot connect to AI network.`;
     messageDiv.style.color = '#f87171';
   }
 };
 
-// Input Listeners
 form.addEventListener('submit', handleSubmit);
 textarea.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
