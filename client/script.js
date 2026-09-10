@@ -69,7 +69,7 @@ const handleSubmit = async (e) => {
   const messageDiv = document.getElementById(uniqueId);
   loader(messageDiv);
 
-try {
+  try {
     chatHistory.push({ role: 'user', content: userPrompt });
 
     // Call your Vercel serverless function
@@ -93,6 +93,7 @@ try {
     messageDiv.innerText = `Error: ${error.message}`;
     messageDiv.style.color = '#f87171';
   }
+};
 
 form.addEventListener('submit', handleSubmit);
 textarea.addEventListener('keydown', (e) => {
