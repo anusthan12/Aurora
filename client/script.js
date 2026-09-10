@@ -1,132 +1,104 @@
-import bot from './assets/bot.svg'
-import user from './assets/user.svg'
-import * as webllm from "https://esm.run/@mlc-ai/web-llm"
+import bot from './assets/bot.svg';
+import user from './assets/user.svg';
 
-// The model runs entirely in the visitor's browser (WebGPU). No server,
-// no API key, no cost — ever. First load downloads the model once and
-// caches it in the browser for next time.
-const MODEL = "Llama-3.2-1B-Instruct-q4f32_1-MLC"
+const form = document.querySelector('form');
+const chatContainer = document.querySelector('#chat_container');
+const textarea = form.querySelector('textarea');
 
-const form = document.querySelector('form')
-const chatContainer = document.querySelector('#chat_container')
+let loadInterval = null;
 
-let loadInterval
-let engine = null
-let history = []
+// Multi-turn conversation memory
+const chatHistory = [
+  { role: "system", content: "You are Aurora, a helpful and concise AI assistant." }
+];
 
 function loader(element) {
-    element.textContent = ''
-    loadInterval = setInterval(() => {
-        element.textContent += '.'
-        if (element.textContent === '....') {
-            element.textContent = ''
-        }
-    }, 300)
+  element.textContent = '';
+  loadInterval = setInterval(() => {
+    element.textContent += '.';
+    if (element.textContent === '....') element.textContent = '';
+  }, 300);
 }
 
 function typeText(element, text) {
-    let index = 0
-    let interval = setInterval(() => {
-        if (index < text.length) {
-            element.innerHTML += text.charAt(index)
-            index++
-        } else {
-            clearInterval(interval)
-        }
-    }, 20)
+  let index = 0;
+  element.innerHTML = '';
+  const interval = setInterval(() => {
+    if (index < text.length) {
+      element.innerHTML += text.charAt(index);
+      index++;
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    } else {
+      clearInterval(interval);
+    }
+  }, 15);
 }
 
 function generateUniqueId() {
-    const timestamp = Date.now()
-    const randomNumber = Math.random()
-    const hexadecimalString = randomNumber.toString(16)
-    return `id-${timestamp}-${hexadecimalString}`
+  return `msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function chatStripe(isAi, value, uniqueId) {
-    return (
-        `
-        <div class="wrapper ${isAi && 'ai'}">
-            <div class="chat">
-                <div class="profile">
-                    <img
-                      src=${isAi ? bot : user}
-                      alt="${isAi ? 'bot' : 'user'}"
-                    />
-                </div>
-                <div class="message" id=${uniqueId}>${value}</div>
-            </div>
+function chatStripe(isAi, value, uniqueId = '') {
+  return `
+    <div class="wrapper ${isAi ? 'ai' : ''}">
+      <div class="chat">
+        <div class="profile">
+          <img src="${isAi ? bot : user}" alt="${isAi ? 'bot' : 'user'}" />
         </div>
-    `
-    )
-}
-
-// Loads the model on first use and shows progress in the heading.
-async function ensureEngineReady() {
-    if (engine) return engine
-
-    const heading = document.querySelector('#heading')
-    engine = await webllm.CreateMLCEngine(MODEL, {
-        initProgressCallback: (report) => {
-            heading.textContent = report.text || 'Loading model…'
-        }
-    })
-    heading.textContent = 'Aurora'
-    return engine
+        <div class="message" ${uniqueId ? `id="${uniqueId}"` : ''}>${value}</div>
+      </div>
+    </div>
+  `;
 }
 
 const handleSubmit = async (e) => {
-    e.preventDefault()
+  if (e) e.preventDefault();
 
-    const data = new FormData(form)
-    const prompt = data.get('prompt')
-    if (!prompt || !prompt.trim()) return
+  const formData = new FormData(form);
+  const userPrompt = formData.get('prompt')?.trim();
 
-    chatContainer.innerHTML += chatStripe(false, prompt)
-    form.reset()
+  if (!userPrompt) return;
 
-    const uniqueId = generateUniqueId()
-    chatContainer.innerHTML += chatStripe(true, " ", uniqueId)
-    chatContainer.scrollTop = chatContainer.scrollHeight
+  chatContainer.innerHTML += chatStripe(false, userPrompt);
+  form.reset();
 
-    const messageDiv = document.getElementById(uniqueId)
-    loader(messageDiv)
+  const uniqueId = generateUniqueId();
+  chatContainer.innerHTML += chatStripe(true, ' ', uniqueId);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
 
-    try {
-        const ai = await ensureEngineReady()
+  const messageDiv = document.getElementById(uniqueId);
+  loader(messageDiv);
 
-        history.push({ role: 'user', content: prompt })
+  try {
+    chatHistory.push({ role: 'user', content: userPrompt });
 
-        const reply = await ai.chat.completions.create({
-            messages: history,
-            temperature: 0.7
-        })
+    // Call your Vercel serverless function
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: chatHistory })
+    });
+    
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Server error');
 
-        const text = reply.choices[0].message.content.trim()
-        history.push({ role: 'assistant', content: text })
-        history = history.slice(-20) // keep it light
+    clearInterval(loadInterval);
+    const botReply = data.reply;
+    
+    chatHistory.push({ role: 'assistant', content: botReply });
+    typeText(messageDiv, botReply);
 
-        clearInterval(loadInterval)
-        messageDiv.innerHTML = " "
-        typeText(messageDiv, text)
+  } catch (error) {
+    clearInterval(loadInterval);
+    messageDiv.innerText = `Error: ${error.message}`;
+    messageDiv.style.color = '#f87171';
+  }
+};
 
-    } catch (error) {
-        clearInterval(loadInterval)
-        console.error(error)
-        messageDiv.innerHTML = "Something went wrong loading or running the model."
-        alert(String(error.message || error))
-    }
-}
-
-form.addEventListener('submit', handleSubmit)
-form.addEventListener('keyup', (e) => {
-    if (e.keyCode === 13) {
-        handleSubmit(e)
-    }
-})
-
-// Warm up the model as soon as the page loads so the first message is fast.
-ensureEngineReady().catch(err => {
-    console.error('Model preload failed:', err)
-    document.querySelector('#heading').textContent = 'Aurora (tap to retry loading)'
-})
+form.addEventListener('submit', handleSubmit);
+textarea.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    form.requestSubmit();
+  }
+});
