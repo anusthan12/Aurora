@@ -69,34 +69,30 @@ const handleSubmit = async (e) => {
   const messageDiv = document.getElementById(uniqueId);
   loader(messageDiv);
 
-  try {
+try {
     chatHistory.push({ role: 'user', content: userPrompt });
 
-    // Directly calling the free, no-key open API
-    const response = await fetch('https://text.pollinations.ai/', {
+    // Call your Vercel serverless function
+    const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: chatHistory,
-        model: 'openai' // Routes to a generic open-weights model
-      })
+      body: JSON.stringify({ messages: chatHistory })
     });
     
-    if (!response.ok) throw new Error('Network response was not ok');
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Server error');
 
-    // Pollinations returns plain text, not JSON
-    const botReply = await response.text(); 
-    
     clearInterval(loadInterval);
+    const botReply = data.reply;
+    
     chatHistory.push({ role: 'assistant', content: botReply });
     typeText(messageDiv, botReply);
 
   } catch (error) {
     clearInterval(loadInterval);
-    messageDiv.innerText = `Error: Cannot connect to AI network.`;
+    messageDiv.innerText = `Error: ${error.message}`;
     messageDiv.style.color = '#f87171';
   }
-};
 
 form.addEventListener('submit', handleSubmit);
 textarea.addEventListener('keydown', (e) => {
