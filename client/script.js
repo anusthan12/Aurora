@@ -1,120 +1,70 @@
-import bot from './assets/bot.svg'
-import user from './assets/user.svg'
+import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
 
-const form = document.querySelector('form')
-const chatContainer = document.querySelector('#chat_container')
+const form = document.querySelector('form');
+const chatContainer = document.querySelector('#chat_container');
 
-let loadInterval
+let engine;
+let isLoaded = false;
 
-function loader(element) {
-    element.textContent = ''
+// UI element to show model download progress
+const statusText = document.createElement('div');
+statusText.style.color = '#a3a3a3';
+statusText.style.textAlign = 'center';
+statusText.style.padding = '10px';
+chatContainer.appendChild(statusText);
 
-    loadInterval = setInterval(() => {
-        // Update the text content of the loading indicator
-        element.textContent += '.';
-
-        // If the loading indicator has reached three dots, reset it
-        if (element.textContent === '....') {
-            element.textContent = '';
-        }
-    }, 300);
+// Initialize WebLLM in the browser
+async function initAI() {
+    try {
+        engine = await CreateMLCEngine(
+            "Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            { 
+                initProgressCallback: (progress) => {
+                    statusText.innerText = progress.text; // e.g., "Downloading... 45%"
+                }
+            }
+        );
+        statusText.innerText = 'Model loaded successfully. AI is ready!';
+        isLoaded = true;
+    } catch (error) {
+        statusText.innerText = `Error loading WebGPU: ${error.message}`;
+    }
 }
+initAI();
 
-function typeText(element, text) {
-    let index = 0
-
-    let interval = setInterval(() => {
-        if (index < text.length) {
-            element.innerHTML += text.charAt(index)
-            index++
-        } else {
-            clearInterval(interval)
-        }
-    }, 20)
-}
-
-// generate unique ID for each message div of bot
-// necessary for typing text effect for that specific reply
-// without unique ID, typing text will work on every element
-function generateUniqueId() {
-    const timestamp = Date.now();
-    const randomNumber = Math.random();
-    const hexadecimalString = randomNumber.toString(16);
-
-    return `id-${timestamp}-${hexadecimalString}`;
-}
-
-function chatStripe(isAi, value, uniqueId) {
-    return (
-        `
-        <div class="wrapper ${isAi && 'ai'}">
-            <div class="chat">
-                <div class="profile">
-                    <img 
-                      src=${isAi ? bot : user} 
-                      alt="${isAi ? 'bot' : 'user'}" 
-                    />
-                </div>
-                <div class="message" id=${uniqueId}>${value}</div>
-            </div>
-        </div>
-    `
-    )
-}
+// Your existing generateUniqueId and chatStripe functions go here...
+// (Keep your existing UI formatting functions untouched)
 
 const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
+    if (!isLoaded) return alert("Please wait for the AI model to finish downloading.");
 
-    const data = new FormData(form)
+    const data = new FormData(form);
+    const userPrompt = data.get('prompt');
+    
+    // 1. Add user chat stripe to UI
+    // chatContainer.innerHTML += chatStripe(false, userPrompt);
+    form.reset();
 
-    // user's chatstripe
-    chatContainer.innerHTML += chatStripe(false, data.get('prompt'))
+    // 2. Add empty bot chat stripe to UI with a unique ID
+    const uniqueId = "unique-id-string"; // use your generateUniqueId() here
+    // chatContainer.innerHTML += chatStripe(true, " ", uniqueId);
+    const messageDiv = document.getElementById(uniqueId);
 
-    // to clear the textarea input 
-    form.reset()
-
-    // bot's chatstripe
-    const uniqueId = generateUniqueId()
-    chatContainer.innerHTML += chatStripe(true, " ", uniqueId)
-
-    // to focus scroll to the bottom 
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-
-    // specific message div 
-    const messageDiv = document.getElementById(uniqueId)
-
-    // messageDiv.innerHTML = "..."
-    loader(messageDiv)
-
-    const response = await fetch('https://aurora-y9gz.onrender.com', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            prompt: data.get('prompt')
-        })
-    })
-
-    clearInterval(loadInterval)
-    messageDiv.innerHTML = " "
-
-    if (response.ok) {
-        const data = await response.json();
-        const parsedData = data.bot.trim() // trims any trailing spaces/'\n' 
-
-        typeText(messageDiv, parsedData)
-    } else {
-        const err = await response.text()
-
-        messageDiv.innerHTML = "Something went wrong"
-        alert(err)
+    // 3. Generate response entirely in the browser
+    try {
+        const response = await engine.chat.completions.create({
+            messages: [{ role: "user", content: userPrompt }],
+            temperature: 0.7,
+        });
+        
+        messageDiv.innerText = response.choices[0].message.content;
+    } catch (error) {
+        messageDiv.innerText = "Something went wrong: " + error.message;
     }
-}
+};
 
-form.addEventListener('submit', handleSubmit)
+form.addEventListener('submit', handleSubmit);
 form.addEventListener('keyup', (e) => {
-    if (e.keyCode === 13) {
-        handleSubmit(e)
-    }
-})
+    if (e.keyCode === 13) handleSubmit(e);
+});
