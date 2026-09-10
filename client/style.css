@@ -357,6 +357,24 @@ button[type="submit"]:active {
   box-shadow: 0 2px 10px rgba(0,229,195,0.3);
 }
 
+.wrapper {
+  background: #1e293b !important; /* User prompt stripe */
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.wrapper.ai {
+  background: #0f172a !important; /* Distinct Bot stripe */
+}
+
+.message {
+  color: #f8fafc !important; /* Crisp high-contrast white */
+  font-size: 16px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 680px) {
   #chat_container   { padding: 0 14px 20px; }
